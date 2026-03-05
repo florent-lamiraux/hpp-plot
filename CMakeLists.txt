@@ -67,65 +67,33 @@ list(APPEND PKG_CONFIG_ADDITIONAL_VARIABLES qtversion cmake_plugin)
 compute_project_args(PROJECT_ARGS LANGUAGES CXX)
 project(${PROJECT_NAME} ${PROJECT_ARGS})
 
-option(HPP_MANIPULATION_CORBA_CLIENT_ONLY
-       "Disable functionnalities requiring the corba servers of HPP" OFF)
-
-add_project_dependency("gepetto-viewer")
-add_project_dependency("gepetto-viewer-corba")
-
-if(gepetto-viewer-corba_FOUND)
-  # Get desired Qt version
-  string(REPLACE "." ";" DESIRED_QT_VERSION_LIST
-                 ${GEPETTO_VIEWER_CORBA_QTVERSION})
-  list(GET DESIRED_QT_VERSION_LIST 0 DESIRED_QT_VERSION_MAJOR)
-
-  if(${DESIRED_QT_VERSION_MAJOR} EQUAL 4)
-    set(USE_QT4 True)
-  elseif(${DESIRED_QT_VERSION_MAJOR} EQUAL 5)
-    set(USE_QT4 False)
-  else()
-    message(FATAL_ERROR "This package is only compatible with Qt 4 and Qt 5")
-  endif()
-else(gepetto-viewer-corba_FOUND)
-  set(USE_QT4
-      FALSE
-      CACHE BOOL "Use Qt4 instead of Qt5")
-endif(gepetto-viewer-corba_FOUND)
-
 message(STATUS "Looking for Qt ${DESIRED_QT_VERSION_MAJOR}.")
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-if(USE_QT4)
-  find_package(Qt4 REQUIRED QtCore QtGui)
-  set(PKG_CONFIG_EXTRA
-      "qtversion: ${QT_VERSION_MAJOR}.${QT_VERSION_MINOR}.${QT_VERSION_PATCH}")
-else(USE_QT4)
-  find_package(
-    Qt5 REQUIRED
-    COMPONENTS Core
-               Widgets
-               Gui
-               PrintSupport
-               Concurrent
-               OpenGL
-               Network
-               Xml)
-  foreach(
-    component
-    "Core"
-    "Widgets"
-    "Gui"
-    "PrintSupport"
-    "Concurrent"
-    OpenGL
-    Network
-    Xml)
-    list(APPEND QT_INCLUDE_DIRS ${Qt5${component}_INCLUDE_DIRS})
-    list(APPEND QT_LIBRARIES ${Qt5${component}_LIBRARIES})
-  endforeach()
-  set(PKG_CONFIG_EXTRA "qtversion=${Qt5Core_VERSION}")
-endif(USE_QT4)
+find_package(
+  Qt5 REQUIRED
+  COMPONENTS Core
+             Widgets
+             Gui
+             PrintSupport
+             Concurrent
+             OpenGL
+             Network
+             Xml)
+foreach(
+  component
+  "Core"
+  "Widgets"
+  "Gui"
+  "PrintSupport"
+  "Concurrent"
+  OpenGL
+  Network
+  Xml)
+  list(APPEND QT_INCLUDE_DIRS ${Qt5${component}_INCLUDE_DIRS})
+  list(APPEND QT_LIBRARIES ${Qt5${component}_LIBRARIES})
+endforeach()
+set(PKG_CONFIG_EXTRA "qtversion=${Qt5Core_VERSION}")
 
-add_project_dependency("hpp-manipulation-corba" REQUIRED)
 add_project_dependency("hpp-manipulation" REQUIRED)
 add_project_dependency("qgv" REQUIRED)
 
@@ -135,7 +103,7 @@ findpython()
 search_for_boost_python()
 
 set(${PROJECT_NAME}_HEADERS
-    include/hpp/plot/graph-widget.hh include/hpp/plot/hpp-manipulation-graph.hh
+    include/hpp/plot/graph-widget.hh
     include/hpp/plot/hpp-native-graph.hh)
 set(${PROJECT_NAME}_HEADERS_NOMOC)
 
@@ -143,20 +111,13 @@ set(${PROJECT_NAME}_FORMS)
 
 set(${PROJECT_NAME}_RESOURCES)
 
-if(USE_QT4)
-  qt4_wrap_cpp(${PROJECT_NAME}_HEADERS_MOC ${${PROJECT_NAME}_HEADERS})
-  qt4_wrap_ui(${PROJECT_NAME}_FORMS_HEADERS ${${PROJECT_NAME}_FORMS})
-  qt4_add_resources(${PROJECT_NAME}_RESOURCES_RCC ${${PROJECT_NAME}_RESOURCES})
-  include(${QT_USE_FILE})
-else(USE_QT4)
-  qt5_wrap_cpp(${PROJECT_NAME}_HEADERS_MOC ${${PROJECT_NAME}_HEADERS})
-  qt5_wrap_ui(${PROJECT_NAME}_FORMS_HEADERS ${${PROJECT_NAME}_FORMS})
-  qt5_add_resources(${PROJECT_NAME}_RESOURCES_RCC ${${PROJECT_NAME}_RESOURCES})
-endif(USE_QT4)
+qt5_wrap_cpp(${PROJECT_NAME}_HEADERS_MOC ${${PROJECT_NAME}_HEADERS})
+qt5_wrap_ui(${PROJECT_NAME}_FORMS_HEADERS ${${PROJECT_NAME}_FORMS})
+qt5_add_resources(${PROJECT_NAME}_RESOURCES_RCC ${${PROJECT_NAME}_RESOURCES})
+
 add_definitions(${QT_DEFINITIONS})
 
-set(${PROJECT_NAME}_SOURCES src/graph-widget.cc src/hpp-manipulation-graph.cc
-                            src/hpp-native-graph.cc)
+set(${PROJECT_NAME}_SOURCES src/graph-widget.cc src/hpp-native-graph.cc)
 
 add_library(
   ${PROJECT_NAME} SHARED
@@ -166,16 +127,12 @@ add_library(
 
 target_link_libraries(
   ${PROJECT_NAME}
-  PUBLIC ${QT_LIBRARIES} hpp-manipulation-corba::hpp-manipulation-corba
-         hpp-manipulation::hpp-manipulation qgv::qgvcore)
+  PUBLIC ${QT_LIBRARIES} hpp-manipulation::hpp-manipulation qgv::qgvcore)
 
 install(
   TARGETS ${PROJECT_NAME}
   EXPORT ${TARGETS_EXPORT_NAME}
   DESTINATION lib)
-
-add_subdirectory(bin)
-add_subdirectory(plugins)
 
 # Python module for native graph viewer
 add_library(pyhpp_plot_graph_viewer MODULE src/pyhpp_plot/graph_viewer.cc)
